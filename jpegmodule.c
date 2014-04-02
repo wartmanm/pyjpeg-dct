@@ -1,4 +1,4 @@
-#include <python2.7/Python.h>
+#include "python-version.h"
 #include <string.h>
 #include "jpeg.h"
 
@@ -12,7 +12,7 @@ static void JpegObject_dealloc(py_JpegObject *self) {
   if (self->inited) {
     closejpeg(&self->stuff);
   }
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject *py_JpegObject_getComponentDimensions(py_JpegObject *self, PyObject *args) {
@@ -136,8 +136,7 @@ static PyMethodDef JpegObjectMethods[] = {
 };
 
 static PyObject *py_JpegObject_getComponentCount(py_JpegObject *self, void *closure) {
-  return PyInt_FromLong(self->stuff.cinfo.num_components);
-
+  return PyLong_FromLong(self->stuff.cinfo.num_components);
 }
 
 static PyGetSetDef JpegObjectGetSet[] = {
@@ -146,8 +145,7 @@ static PyGetSetDef JpegObjectGetSet[] = {
 };
 
 static PyTypeObject py_JpegType = {
-    PyObject_HEAD_INIT(NULL)
-    0,  //always 0             /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0)
     "jpeg.Jpeg",               /*tp_name*/
     sizeof(py_JpegObject),     /*tp_basicsize*/
     0,                         /*tp_itemsize*/
@@ -191,17 +189,41 @@ static PyMethodDef JpegMethods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC initjpeg(void) {
+#if python_version == 3
+static PyModuleDef JpegModule = {
+  PyModuleDef_HEAD_INIT,
+  "jpeg",
+  "libjpeg bindings",
+  -1,
+  JpegMethods, NULL, NULL, NULL, NULL
+};
+#endif
+
+PyObject* doinit(void) {
   py_JpegType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&py_JpegType) < 0) {
-    return;
+    return NULL;
   }
+#if python_version == 3
+  PyObject *m = PyModule_Create(&JpegModule);
+#elif python_version == 2
   PyObject *m = Py_InitModule3("jpeg", JpegMethods, "hello world");
+#endif
   if (m == NULL) {
-    return;
+    return NULL;
   }
 
   Py_INCREF(&py_JpegType);
   PyModule_AddObject(m, "Jpeg", (PyObject *)&py_JpegType);
-
+  
+  return m;
 }
+#if python_version == 3
+PyMODINIT_FUNC PyInit_jpeg(void) {
+  return doinit();
+}
+#elif python_version == 2
+PyMODINIT_FUNC initjpeg(void) {
+  doinit();
+}
+#endif

@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-fPIC -Wall -Wextra -pthread -Wno-unused-parameter -std=c99 -g
 INCLUDE=
-LIBS=-ljpeg -lpython2.7
+LIBS=-ljpeg -lpython2.7 -lpython3.2
 BIN_NAME=test
 SRC_PATH = .
 BUILD_PATH = .
